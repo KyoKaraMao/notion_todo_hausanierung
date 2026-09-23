@@ -1,12 +1,13 @@
 {
   "domain": "notion_todo",
-  "name": "Notion ToDo",
+  "name": "Notion ToDo (Hausanierung)",
   "codeowners": [
-    "@JanGiese"
+    "@JanGiese",
+    "@KyoKaraMao"
   ],
   "config_flow": true,
-  "documentation": "https://github.com/JanGiese/notion_todo",
+  "documentation": "https://github.com/KyoKaraMao/notion_todo_hausanierung",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/JanGiese/notion_todo/issues",
-  "version": "0.0.2"
+  "issue_tracker": "https://github.com/KyoKaraMao/notion_todo_hausanierung/issues",
+  "version": "0.1.0"
 }

@@ -6,9 +6,14 @@ import socket
 import copy
 import aiohttp
 import async_timeout
-from datetime import datetime
 
-from .const import NOTION_URL, NOTION_VERSION, TASK_STATUS_PROPERTY, TASK_DATE_PROPERTY, TASK_DESCRIPTION_PROPERTY
+from .const import (
+    NOTION_URL,
+    NOTION_VERSION,
+    TASK_STATUS_PROPERTY,
+    IMPORTANCE_FILTER_VALUE,
+    STATUS_DONE_VALUES,
+)
 from .notion_property_helper import NotionPropertyHelper as propHelper
 
 
@@ -58,11 +63,29 @@ class NotionApiClient:
         self._task_template = None
 
     async def async_get_data(self) -> any:
-        """Get data from the API."""
+        """Get data from the API.
+
+        Only important, still-open tasks: Art = Kernaufgabe and Status not
+        in the completed states (Erledigt/wont do stay excluded so old
+        finished tasks don't clutter the HA todo list).
+        """
+        done_filters = [
+            {"property": "Status", "select": {"does_not_equal": value}}
+            for value in STATUS_DONE_VALUES
+        ]
+        query = {
+            "filter": {
+                "and": [
+                    {"property": "Art", "select": {"equals": IMPORTANCE_FILTER_VALUE}},
+                    *done_filters,
+                ]
+            }
+        }
         return await self._api_wrapper(
             method="post",
             url=f"{NOTION_URL}/databases/{self._database_id}/query",
-            headers=self._headers
+            headers=self._headers,
+            data=query,
         )
 
     async def update_task(
@@ -70,8 +93,6 @@ class NotionApiClient:
         task_id: str,
         title: str,
         status: str,
-        due: datetime,
-        description: str
     ) -> any:
         """Update task in Notion.
 
@@ -79,15 +100,11 @@ class NotionApiClient:
             task_id (str): id of the task
             title: (str): Title of the task
             status (str): Status of the task
-            due (datetime): Due date of the task
-            description (str): Description of the task
 
         """
         task_data = await self._get_task_template()
         task_data = propHelper.set_property_by_id("title", title, task_data)
         task_data = propHelper.set_property_by_id(TASK_STATUS_PROPERTY, status, task_data)
-        task_data = propHelper.set_property_by_id(TASK_DATE_PROPERTY, due, task_data)
-        task_data = propHelper.set_property_by_id(TASK_DESCRIPTION_PROPERTY, description, task_data)
         update_properties = task_data['properties']
         return await self._api_wrapper(
             method="patch",
@@ -143,7 +160,7 @@ class NotionApiClient:
         if not self._task_template:
             database = await self._get_database()
             properties = database['properties']
-            propHelper.del_properties_except(["title", TASK_STATUS_PROPERTY, TASK_DATE_PROPERTY, TASK_DESCRIPTION_PROPERTY], properties)
+            propHelper.del_properties_except(["title", TASK_STATUS_PROPERTY], properties)
             self._task_template = {
                 'parent': {'database_id': self._database_id},
                 'properties': properties

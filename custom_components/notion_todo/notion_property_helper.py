@@ -59,7 +59,7 @@ class NotionPropertyHelper:
         elif prop_type == 'multi_select':
             return NotionPropertyHelper._parse_multi_select(prop)
         elif prop_type == 'select':
-            return NotionPropertyHelper._parse_select(prop)
+            return NotionPropertyHelper._select(prop, value)
         elif prop_type == 'last_edited_by':
             return NotionPropertyHelper._parse_last_edited_by(prop)
         elif prop_type == 'last_edited_time':
@@ -111,11 +111,14 @@ class NotionPropertyHelper:
         return selected_items
 
     @staticmethod
-    def _parse_select(prop):
-        prop_value = prop['select']
-        if prop_value:
-            return prop_value['name']
-        return None
+    def _select(prop, value=None):
+        if value:
+            return {"type": "select", "select": {"name": value}}
+        else:
+            prop_value = prop['select']
+            if prop_value:
+                return prop_value['name']
+            return None
 
     @staticmethod
     def _parse_last_edited_by(prop):

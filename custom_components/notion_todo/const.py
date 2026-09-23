@@ -10,7 +10,16 @@ ATTRIBUTION = "Data provided by https://api.notion.com/v1"
 NOTION_URL = "https://api.notion.com/v1"
 NOTION_VERSION = "2022-02-22"
 CONF_DATABASE_ID = "database_id"
-TASK_DATE_PROPERTY = "notion%3A%2F%2Ftasks%2Fdue_date_property"
-TASK_ASSIGNEE_PROPERTY = "notion%3A%2F%2Ftasks%2Fassign_property"
-TASK_STATUS_PROPERTY = "notion%3A%2F%2Ftasks%2Fstatus_property"
-TASK_DESCRIPTION_PROPERTY = "notion%3A%2F%2Ftasks%2Fai_summary_property"
+
+# Property IDs specific to the "✅ Aufgaben" database in the Hausanierung
+# Notion workspace (not Notion's native Task-List template properties -
+# this DB uses plain Select fields instead).
+TASK_STATUS_PROPERTY = "VVpbVw"  # "Status" (select: Blockiert/Zu erledigen/.../Erledigt/wont do)
+TASK_IMPORTANCE_PROPERTY = "Rk5ATA"  # "Art" (select: Kernaufgabe/Lückenfüller)
+
+# Values of the "Status" select used to mark completion in HA <-> Notion.
+STATUS_DONE_VALUES = ("Erledigt", "wont do")
+STATUS_REOPEN_VALUE = "Zu erledigen"
+
+# Only surface important, still-open tasks: Art = Kernaufgabe.
+IMPORTANCE_FILTER_VALUE = "Kernaufgabe"
