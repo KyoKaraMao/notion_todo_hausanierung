@@ -13,7 +13,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, TASK_STATUS_PROPERTY, STATUS_DONE_VALUES, STATUS_REOPEN_VALUE
+from .const import DOMAIN, TASK_TITLE_PROPERTY, TASK_STATUS_PROPERTY, STATUS_DONE_VALUES, STATUS_REOPEN_VALUE
 from .coordinator import NotionDataUpdateCoordinator
 from .notion_property_helper import NotionPropertyHelper as propHelper
 
@@ -54,7 +54,7 @@ class NotionTodoListEntity(CoordinatorEntity[NotionDataUpdateCoordinator], TodoL
             items = []
             for task in self.coordinator.data['results']:
                 id = task['id']
-                notion_status = propHelper.get_property_by_id(TASK_STATUS_PROPERTY, task)
+                notion_status = propHelper.get_property_by_name(TASK_STATUS_PROPERTY, task)
                 status = (
                     TodoItemStatus.COMPLETED
                     if notion_status in STATUS_DONE_VALUES
@@ -63,7 +63,7 @@ class NotionTodoListEntity(CoordinatorEntity[NotionDataUpdateCoordinator], TodoL
 
                 items.append(
                     TodoItem(
-                        summary=propHelper.get_property_by_id('title', task),
+                        summary=propHelper.get_property_by_name(TASK_TITLE_PROPERTY, task),
                         uid=id,
                         status=status,
                     )

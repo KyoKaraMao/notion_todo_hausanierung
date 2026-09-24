@@ -3,18 +3,18 @@ from __future__ import annotations
 
 import asyncio
 import socket
-import copy
 import aiohttp
 import async_timeout
 
 from .const import (
     NOTION_URL,
     NOTION_VERSION,
+    TASK_TITLE_PROPERTY,
     TASK_STATUS_PROPERTY,
+    TASK_IMPORTANCE_PROPERTY,
     IMPORTANCE_FILTER_VALUE,
     STATUS_DONE_VALUES,
 )
-from .notion_property_helper import NotionPropertyHelper as propHelper
 
 
 class NotionApiClientError(Exception):
@@ -60,7 +60,6 @@ class NotionApiClient:
         self._session = session
         self._headers['Authorization'] = f'Bearer {token}'
         self._database_id = database_id
-        self._task_template = None
 
     async def async_get_data(self) -> any:
         """Get data from the API.
@@ -70,13 +69,13 @@ class NotionApiClient:
         finished tasks don't clutter the HA todo list).
         """
         done_filters = [
-            {"property": "Status", "select": {"does_not_equal": value}}
+            {"property": TASK_STATUS_PROPERTY, "select": {"does_not_equal": value}}
             for value in STATUS_DONE_VALUES
         ]
         query = {
             "filter": {
                 "and": [
-                    {"property": "Art", "select": {"equals": IMPORTANCE_FILTER_VALUE}},
+                    {"property": TASK_IMPORTANCE_PROPERTY, "select": {"equals": IMPORTANCE_FILTER_VALUE}},
                     *done_filters,
                 ]
             }
@@ -94,78 +93,24 @@ class NotionApiClient:
         title: str,
         status: str,
     ) -> any:
-        """Update task in Notion.
+        """Update task in Notion (title + Status select only).
 
         Args:
             task_id (str): id of the task
             title: (str): Title of the task
-            status (str): Status of the task
+            status (str): value of the "Status" select property
 
         """
-        task_data = await self._get_task_template()
-        task_data = propHelper.set_property_by_id("title", title, task_data)
-        task_data = propHelper.set_property_by_id(TASK_STATUS_PROPERTY, status, task_data)
-        update_properties = task_data['properties']
+        properties = {
+            TASK_TITLE_PROPERTY: {"title": [{"type": "text", "text": {"content": title}}]},
+            TASK_STATUS_PROPERTY: {"select": {"name": status}},
+        }
         return await self._api_wrapper(
             method="patch",
             url=f"{NOTION_URL}/pages/{task_id}",
             headers=self._headers,
-            data={"properties": update_properties}
+            data={"properties": properties}
         )
-
-    async def create_task(self, title: str, status: str) -> any:
-        """Create a new task in Notion.
-
-        Args:
-            title (str): Title of the task
-            status (str): Status of the task
-
-        """
-        task_template = await self._get_task_template()
-        task_data = task_template.copy()
-        task_data["properties"] = propHelper.del_properties_except(["title", TASK_STATUS_PROPERTY], task_data["properties"])
-        task_data = propHelper.set_property_by_id("title", title, task_data)
-        task_data = propHelper.set_property_by_id(TASK_STATUS_PROPERTY, status, task_data)
-
-        return await self._api_wrapper(
-            method="post",
-            url=f"{NOTION_URL}/pages",
-            headers=self._headers,
-            data=task_data)
-
-    async def delete_task(self,
-                          task_id: str):
-        """Delete a task in Notion.
-
-        Args:
-            task_id (str): id of the task
-
-        Returns:
-            _type_: _description_
-
-        """
-        return await self._api_wrapper(
-            method="delete",
-            url=f"{NOTION_URL}/blocks/{task_id}",
-            headers=self._headers)
-
-    async def _get_database(self):
-        return await self._api_wrapper(
-            method="get",
-            url=f"{NOTION_URL}/databases/{self._database_id}",
-            headers=self._headers
-        )
-
-    async def _get_task_template(self):
-        if not self._task_template:
-            database = await self._get_database()
-            properties = database['properties']
-            propHelper.del_properties_except(["title", TASK_STATUS_PROPERTY], properties)
-            self._task_template = {
-                'parent': {'database_id': self._database_id},
-                'properties': properties
-            }
-        return copy.deepcopy(self._task_template)
 
     async def _api_wrapper(
         self,

@@ -24,6 +24,11 @@ class NotionPropertyHelper:
         return data
 
     @staticmethod
+    def get_property_by_name(name, data):
+        """Get property by its exact key in the properties dict."""
+        return NotionPropertyHelper._property(data['properties'][name])
+
+    @staticmethod
     def del_properties_except(ids, properties):
         """Delete properties except param."""
         delete_properties = []
